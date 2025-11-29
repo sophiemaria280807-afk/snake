@@ -41,15 +41,15 @@ def place_black_holes():
             return black_hole_1, black_hole_2
 
 # Draw snake
-def draw_snake(snake):
+def draw_snake(snake, snake_color):
     for segment in snake:
-        pygame.draw.rect(screen, GREEN, pygame.Rect(segment[0] * CELL_SIZE, segment[1] * CELL_SIZE, CELL_SIZE, CELL_SIZE))
+        pygame.draw.rect(screen, snake_color, pygame.Rect(segment[0] * CELL_SIZE, segment[1] * CELL_SIZE, CELL_SIZE, CELL_SIZE))
 
 # Draw apple
 def draw_apple(apple_position):
     pygame.draw.rect(screen, RED, pygame.Rect(apple_position[0] * CELL_SIZE, apple_position[1] * CELL_SIZE, CELL_SIZE, CELL_SIZE))
 
-# Draw star, fire, black holes
+# Draw special objects
 def draw_specials(obstacle_position, star_position, black_hole_1, black_hole_2):
     pygame.draw.rect(screen, ORANGE, pygame.Rect(obstacle_position[0] * CELL_SIZE, obstacle_position[1] * CELL_SIZE, CELL_SIZE, CELL_SIZE))
     pygame.draw.rect(screen, YELLOW, pygame.Rect(star_position[0] * CELL_SIZE, star_position[1] * CELL_SIZE, CELL_SIZE, CELL_SIZE))
@@ -65,14 +65,18 @@ def game():
     star_position = [random.randint(1, GRID_SIZE-2), random.randint(1, GRID_SIZE-2)]
     direction = [1, 0]
     score = 0
+
     speed_up = False
+    speed_timer = 0
+    snake_color = GREEN
+
     game_running = True
     black_hole_1, black_hole_2 = None, None
 
     while game_running:
         screen.fill(BLACK)
         draw_grid()
-        draw_snake(snake)
+        draw_snake(snake, snake_color)
         draw_apple(apple_position)
         draw_specials(obstacle_position, star_position, black_hole_1, black_hole_2)
         pygame.display.update()
@@ -100,32 +104,33 @@ def game():
 
         snake.insert(0, new_head)
 
-        # Track if apple was eaten (needed so we don't pop tail)
         ate_apple = False
 
-        # 🍎 APPLE EAT — GROW SNAKE
+        # 🍎 Apple
         if new_head == apple_position:
             apple_position = [random.randint(1, GRID_SIZE-2), random.randint(1, GRID_SIZE-2)]
             score += 1
-            ate_apple = True  # ❗MARK — so tail is NOT removed
+            ate_apple = True
             print(f"YAYY!!! You ate an apple 🥳. Score: {score}")
 
-        # ⭐ STAR SPEED BOOST
+        # ⭐ STAR BONUS — CHANGE COLOR + SPEED
         elif new_head == star_position:
             speed_up = True
+            speed_timer = 15 # frames
+            snake_color = RED
             star_position = [random.randint(1, GRID_SIZE-2), random.randint(1, GRID_SIZE-2)]
             print("You have got a speed bonus ⚡⚡")
 
-        # 🔥 OBSTACLE
+        # 🔥 Obstacle
         elif new_head == obstacle_position:
             print("You hit an obstacle 💥💀")
             break
 
-        # Black holes appear after score >= 2
+        # Spawn black holes
         if score >= 2 and black_hole_1 is None:
             black_hole_1, black_hole_2 = place_black_holes()
 
-        # White hole teleport
+        # Teleport
         if black_hole_1 and black_hole_2:
             if new_head == black_hole_1:
                 snake[0] = black_hole_2
@@ -134,15 +139,18 @@ def game():
                 snake[0] = black_hole_1
                 black_hole_1, black_hole_2 = place_black_holes()
 
-        # 🟢 REMOVE TAIL ONLY IF NO APPLE WAS EATEN
         if not ate_apple:
             snake.pop()
 
-        # Speed control
+        # ⭐ Handle speed bonus duration
         if speed_up:
             clock.tick(10)
+            speed_timer -= 1
+            if speed_timer <= 0:
+                speed_up = False
+                snake_color = GREEN
         else:
-            clock.tick(3)
+            clock.tick(6)
 
     pygame.quit()
 
